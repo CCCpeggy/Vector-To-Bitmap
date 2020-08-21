@@ -1,0 +1,43 @@
+#pragma once
+
+#include "../include/Common.h"
+// Preclarify to prevent the compiler error
+class TrainWindow;
+class Fl_Widget;
+
+// Reset the train window
+void resetCB(Fl_Widget*, TrainWindow* tw);
+// Something change and thus we need to update the view
+void damageCB(Fl_Widget*, TrainWindow* tw);
+
+// Callback that adds a new point to the spline
+// idea: add the point AFTER the selected point
+void addPointCB(Fl_Widget*, TrainWindow* tw);
+
+// Callback that deletes a point from the spline
+void deletePointCB(Fl_Widget*, TrainWindow* tw);
+
+// Callbacks for advancing/pulling back train
+void forwCB(Fl_Widget*, TrainWindow* tw);
+void backCB(Fl_Widget*, TrainWindow* tw);
+
+// For load and save buttons
+void loadCB(Fl_Widget*, TrainWindow* tw);
+void saveCB(Fl_Widget*, TrainWindow* tw);
+
+// roll the control points
+// Rotate the selected control point  about x axis by one more degree
+void rpxCB(Fl_Widget*, TrainWindow* tw);
+// Rotate the selected control point  about x axis by one less degree
+void rmxCB(Fl_Widget*, TrainWindow* tw);
+
+// Rotate the selected control point  about the z axis one more degree
+void rpzCB(Fl_Widget*, TrainWindow* tw);
+// Rotate the selected control point  about the z axis one less degree
+void rmzCB(Fl_Widget*, TrainWindow* tw);
+void setWidth(Fl_Input*, TrainWindow* tw);
+void setHeight(Fl_Input*, TrainWindow* tw);
+void saveImg(Fl_Widget*, TrainWindow* tw);
+void openFileDialog(Fl_Widget*, TrainWindow* tw);
+void openMyObjFile(Fl_File_Chooser* w, void* userdata);
+void openTextureFile(Fl_File_Chooser* w, void* userdata);
