@@ -1,4 +1,0 @@
-D:/workplace/Comic/Tool/VectorToBitmapFLTK/build3/CMakeFiles/Utilities.dir
-D:/workplace/Comic/Tool/VectorToBitmapFLTK/build3/CMakeFiles/VectorToBitmapFLTK.dir
-D:/workplace/Comic/Tool/VectorToBitmapFLTK/build3/CMakeFiles/ALL_BUILD.dir
-D:/workplace/Comic/Tool/VectorToBitmapFLTK/build3/CMakeFiles/ZERO_CHECK.dir
