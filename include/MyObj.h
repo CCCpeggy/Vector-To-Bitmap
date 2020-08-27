@@ -3,6 +3,7 @@
 class MyObj {
 private:
 	cv::Mat image;
+	cv::Mat _tuImg;
 	std::vector<int> offsets;
 	std::vector<CVSystem::MyPoint> vertexList;				// The actual vertices
 	std::vector<CVSystem::MyIndexedTriangle> indexedTriangles;		// All triangles
@@ -20,6 +21,8 @@ private:
 	GLuint whiteEbo2;
 	GLuint scEbo;
 	GLuint scEbo2;
+	CVSystem::ScreentoneSegmentation* scSegm;
+	CVSystem::Triangulator1* triangulator1;
 public:
 	int img_width;
 	int img_height;
@@ -116,7 +119,7 @@ public:
 
 			if (line.size() == 0) { continue; }
 
-			std::vector<std::string> arrayStr = Common::split(line, ' ');
+			std::vector<std::string> arrayStr = UtilityFunctions::split(line, ' ');
 
 			// vertex list
 			if (StartWith("v2d", line) && arrayStr.size() == 3)
@@ -437,5 +440,76 @@ private:
 			return true;
 		}
 		return false;
+	}
+
+	void ExportTextureUnit(std::string imgPath)
+	{
+		std::cout << "Do Otsu\n";
+		scSegm->ComputeOtsuGaussian();
+
+		std::cout << "Running Segmentation\n";
+		cv::Mat imageROI;
+		imageROI = cv::imread(imgPath);
+		/*std::vector<std::vector<CVSystem::MyPoint>> sRects = ui.frame->GetGLWidget()->GetSelectRectangle();
+		if (sRects.size() != 0)
+		{
+			cv::Mat Bimage = ui.frame->GetGLWidget()->GetTextureUnitSource();
+
+			imageROI = (Bimage, sRects);
+		}
+		else
+		{
+			imageROI = ui.frame->GetGLWidget()->GetTextureUnitSource();
+		}*/
+		cv::imwrite("Origin.png", imageROI);
+		cv::Mat oriImg = CVSystem::ScreentoneSegmentation::Compute_Segmentation(imageROI);
+		cv::imwrite("Compute_Segmentation.png", oriImg);
+		bool isEmpty = true;
+		for (int h = 0; h < oriImg.rows; h++)
+		{
+			for (int w = 0; w < oriImg.cols; w++)
+			{
+				if (oriImg.at<uchar>(h, w) == 0)
+				{
+					isEmpty = false;
+					break;
+				}
+			}
+			if (!isEmpty) false;
+		}
+		if (!isEmpty)
+		{
+			int* labelMap = 0;
+			int* dilatedLabelMap = 0;
+
+			_tuImg = oriImg.clone();
+
+			int offsetPixel = 5;
+			cv::Mat OffsetImg = cv::Mat(cv::Size(oriImg.cols + offsetPixel * 2, oriImg.rows + offsetPixel * 2), CV_8UC1, cv::Scalar(255));
+			cv::Mat ROI = OffsetImg(cv::Rect(5, 5, oriImg.cols, oriImg.rows));
+			oriImg.copyTo(ROI);
+			oriImg = OffsetImg;
+
+
+			if (triangulator1) delete triangulator1;
+			triangulator1 = new CVSystem::Triangulator1();
+			triangulator1->TraceImage(imgPath, oriImg.clone(), labelMap, dilatedLabelMap, true);
+
+			//計算輸出三角化
+			triangulator1->LSCalculate2(oriImg, true, -offsetPixel, -offsetPixel);
+
+			//顯示三角的畫面
+			/*ui.frame->GetGLWidget()->SetTriangles(triangulator1->GetPartOffset(),
+				triangulator1->GetVertexList(),
+				triangulator1->GetIndexedTriangles(),
+				triangulator1->GetBorderSCTriangles(),
+				triangulator1->GetBorderWTriangles(),
+				triangulator1->GetSCTriangles(),
+				triangulator1->GetWTriangles(),
+				triangulator1->GetBTriangles());
+			ui.frame->GetGLWidget()->SetDrawMode(DRAW_RESULT);*/
+
+		}
+
 	}
 };

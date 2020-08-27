@@ -16,7 +16,10 @@
 #include <iostream>
 #include <cstdlib>
 #include <time.h>
-#include <math.h>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
+#include <cassert>
 
 // opengl
 #include <windows.h> // OpenGL needs windows.h
@@ -29,6 +32,7 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/types_c.h>
 
 // FLTK
 #include <Fl/fl.h>
@@ -43,18 +47,73 @@
 #include <Fl/Fl_File_Chooser.H>
 #include <Fl/math.h>
 
-// CVSystem
-#include "../Include/CVSystem/TriangleType.h"
-#include "../Include/CVSystem/MyPoint.h"
-#include "../Include/CVSystem/MyIndexedBezierCurves.h"
-#include "../Include/CVSystem/MyIndexedTriangle.h"
-#include "../Include/CVSystem/MyQuad.h"
-#include "../Include/CVSystem/TriangleType.h"
+// Boost
+#include <boost/chrono.hpp>
 
+// CGAL
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Constrained_Delaunay_triangulation_2.h>
+#include <CGAL/Constrained_triangulation_face_base_2.h>
+#include <CGAL/Triangulation_vertex_base_with_info_2.h>
+#include <CGAL/Triangulation_face_base_with_info_2.h>
+#include <CGAL/Spatial_sort_traits_adapter_2.h>
+#include <CGAL/Polygon_2.h>
+#include <CGAL/Segment_2.h>
+
+#include <CGAL/Delaunay_mesher_2.h>
+#include <CGAL/Delaunay_mesh_face_base_2.h>
+#include <CGAL/Delaunay_mesh_size_criteria_2.h>
+
+#include <CGAL/Simple_cartesian.h>
+#include <CGAL/AABB_tree.h>
+#include <CGAL/AABB_traits.h>
+#include <CGAL/AABB_triangle_primitive.h>
+
+#include <CGAL/Triangulation_conformer_2.h>
+
+// Potrace
+extern "C"
+{
+#include "potracelib.h"
+#include "platform.h"
+#include "bitmap_io.h"
+#include "potrace_main.h"
+}
+
+// CVSystem
+#include "CVSystem/TriangleType.h"
+#include "CVSystem/MyPoint.h"
+#include "CVSystem/MyIndexedBezierCurves.h"
+#include "CVSystem/MyIndexedTriangle.h"
+#include "CVSystem/MyQuad.h"
+#include "CVSystem/MyLine.h"
+#include "CVSystem/MyTriangle.h"
+#include "CVSystem/MyIndexedLine.h"
+#include "CVSystem/TriangleType.h"
+#include "CVSystem/ScreentoneSegmentation.h"
+#include "CVSystem/SystemParams.h"
+#include "CVSystem/CSSSmoothing.h"
+#include "CVSystem/Triangulator1.h"
+#include "CVSystem/Delaunay_mesh_face_base_info_2.h"
+#include "CVSystem/CGALTools.h"
+#include "CVSystem/PixelsInTriangle.h"
+#include "CVSystem/PointInTrianglesTest.h"
+#include "CVSystem/CurveInterpolation.h"
+#include "CVSystem/CurveFitting.h"
+#include "CVSystem/UtilityFunctions.h"
+#include "CVSystem/CurveRDP.h"
+#include "CVSystem/LineCloud.h"
+#include "CVSystem/LinesSorter.h"
+#include "CVSystem/Triangulator1.h"
+#include "CVSystem/NanoFLANN.h"
 
 // Utilities
 #include "../src/Utilities/3DUtils.H"
 #include "../src/Utilities/ArcBallCam.H"
+
+// Eigen
+#include <Eigen/Dense>
+
 // Path
 class Path {
 public:
@@ -90,11 +149,6 @@ public:
 	static void SavePng(const char* path, GLuint tex, int width, int height);
 	static bool FileExists(const char* filePath);
 
-	//// String
-	// split
-	static std::vector<std::string>& split(const std::string& s, char delim, std::vector<std::string>& elems);
-	// split
-	static std::vector<std::string> split(const std::string& s, char delim);
 };
 
 #endif

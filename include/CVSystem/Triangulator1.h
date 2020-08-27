@@ -12,38 +12,8 @@
 #ifndef __Triangulator_1__
 #define __Triangulator_1__
 
-#include <vector>
-
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
-
-#include "CSSSmoothing.h"
-#include "PointInTrianglesTest.h"
-#include "CGALTools.h"
-#include "PointCloud.h"
-
-extern "C" 
-{
-#include "potracelib.h"
-#include "platform.h"
-#include "bitmap_io.h"
-#include "potrace_main.h"
-}
-
-#include "MyPoint.h"
-#include "MyLine.h"
-#include "MyTriangle.h"
-#include "MyQuad.h"
-#include "MyIndexedTriangle.h"
-#include "MyIndexedBezierCurves.h"
-#include "MyIndexedLine.h"
-
-#include "UtilityFunctions.h"
-
-#include "TriangulationInfo.h"
-
-
+#include "../../Include/Common.h"
+#include "CVSystem/CGALTools.h"
 
 namespace CVSystem
 {
@@ -184,35 +154,35 @@ namespace CVSystem
 		
 		void TraceImage(std::string strFilename, cv::Mat img, int* mask, int* dilatedMask, bool isLog);	// Trace
 		
-		void OCalculate();		// Original (Deprecated)
-		void LSCalculate1();	// Least Square (Deprecated)
+		// void OCalculate();		// Original (Deprecated)
+		// void LSCalculate1();	// Least Square (Deprecated)
 		void LSCalculate2(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
-		void LSCalculate3(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
-		void LSCalculateTU(cv::Mat img, bool isLog);	// Complete Triangulation
+		// void LSCalculate3(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
+		// void LSCalculateTU(cv::Mat img, bool isLog);	// Complete Triangulation
 		
 		//KLM
-		void GetCurveInfo(pathInfo *pInfo, potrace_path_t*  path, int w, int h);
-		PotraceInfo* parsePngPath(cv::Mat image);
-		void BackPathAndCoveredTest(CVSystem::PotraceInfo *graph);
-		int CalculateCubicParam( cv::Point3d klm[4], cv::Point2d cp[4] );
-		void InsideOutsideColorCheck(PotraceInfo *graph);
-		void InsideOutsideColorCheck(curveInfo *cInfo);
-		bool InsideOutsideColorCheck(cv::Point2d cp[4], cv::Point3d klm[4], PathSign pSign);
-		int PathInsideTest( CVSystem::pathInfo *pInfo , cv::Point2d pos );
-		void CalTriangleParameter( cv::Vec3d klm[3], cv::Vec4d texCoord[3], CVSystem::curveInfo *cInfo, cv::Point2d cp[4], cv::Point2d tp[3] );
-		void CubicCubicClipping( CVSystem::curveInfo* cInfo_1, CVSystem::curveInfo* cInfo_2);
-		bool LineCurveIntersect( double t[3], cv::Point2d cp0, cv::Point2d cp1, cv::Point2d cp2, cv::Point2d cp3, cv::Point2d Lp0, cv::Point2d Lp1 );
-		void KLMCalculate(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
+	//	void GetCurveInfo(pathInfo *pInfo, potrace_path_t*  path, int w, int h);
+	//	PotraceInfo* parsePngPath(cv::Mat image);
+	//	void BackPathAndCoveredTest(CVSystem::PotraceInfo *graph);
+	//	int CalculateCubicParam( cv::Point3d klm[4], cv::Point2d cp[4] );
+	//	void InsideOutsideColorCheck(PotraceInfo *graph);
+	//	void InsideOutsideColorCheck(curveInfo *cInfo);
+	//	bool InsideOutsideColorCheck(cv::Point2d cp[4], cv::Point3d klm[4], PathSign pSign);
+	//	int PathInsideTest( CVSystem::pathInfo *pInfo , cv::Point2d pos );
+	//	void CalTriangleParameter( cv::Vec3d klm[3], cv::Vec4d texCoord[3], CVSystem::curveInfo *cInfo, cv::Point2d cp[4], cv::Point2d tp[3] );
+	//	void CubicCubicClipping( CVSystem::curveInfo* cInfo_1, CVSystem::curveInfo* cInfo_2);
+	//	bool LineCurveIntersect( double t[3], cv::Point2d cp0, cv::Point2d cp1, cv::Point2d cp2, cv::Point2d cp3, cv::Point2d Lp0, cv::Point2d Lp1 );
+	//	void KLMCalculate(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
 
-		// delete these three functions
-		std::vector<MyTriangle> GetOTriangles();	// Original
-		std::vector<MyQuad>		GetOQuads();		// Original
-		std::vector<MyTriangle> GetLSTriangles();	// LS
-		
+	//	// delete these three functions
+	//	std::vector<MyTriangle> GetOTriangles();	// Original
+	//	std::vector<MyQuad>		GetOQuads();		// Original
+	//	std::vector<MyTriangle> GetLSTriangles();	// LS
+	//	
 		std::vector<MyQuad> GetLSQuads();	// LS (Least Square Fitting for Cubic Bezier)
 
-		// Indexed Format
-		
+	//	// Indexed Format
+	//	
 		std::vector<CVSystem::MyPoint>	   GetVertexList();
 		std::vector<MyIndexedTriangle>	   GetIndexedTriangles();
 		std::vector<MyIndexedTriangle>	   GetWTriangles();
@@ -222,33 +192,33 @@ namespace CVSystem
 		std::vector<MyIndexedTriangle>	   GetBorderSCTriangles();
 		std::vector<MyIndexedBezierCurves> GetIndexedBezierCurves();
 
-		std::vector<KLMTriangle>		   GetIndexedKLMTriangles(){return _indexedKLMTriangles;}
+	//	std::vector<KLMTriangle>		   GetIndexedKLMTriangles(){return _indexedKLMTriangles;}
 
-		// Corner
+	//	// Corner
 		std::vector<CVSystem::MyPoint> GetCornerList();	 // Delete this
 		std::vector<int> GetCornerIndices();
 		std::vector<CVSystem::MyIndexedLine> GetCornerEdges();
 
-		std::vector<int> GetPartOffset() { return _offsets; }
+	//	std::vector<int> GetPartOffset() { return _offsets; }
 
-		// scaled width
-		int GetWidthScaled() { return _w_scaled; }
+	//	// scaled width
+	//	int GetWidthScaled() { return _w_scaled; }
 
-		// scaled height
-		int GetHeightScaled(){ return _h_scaled; }
+	//	// scaled height
+	//	int GetHeightScaled(){ return _h_scaled; }
 
-		cv::Mat GetTriImage(){ return _TriImage; }
+	//	cv::Mat GetTriImage(){ return _TriImage; }
 
-	public:
-		// read .myobj file
-		void ReadFromMYOBJ(std::string filename);
+	//public:
+	//	// read .myobj file
+	//	void ReadFromMYOBJ(std::string filename);
 
-		// read .myobj file
-		void ReadFromMYOBJasSTG(std::string filename);
+	//	// read .myobj file
+	//	void ReadFromMYOBJasSTG(std::string filename);
 
-		TriangulationInfo* STGInfo;
+	//	TriangulationInfo* STGInfo;
 
-	private:
+	//private:
 		// stuff from Potrace
 		potrace_bitmap_t* GetBM(cv::Mat img);
 		void CurveToBezier(MyPoint p0, MyPoint p1, MyPoint p2, MyPoint p3, MyPoint& cp0, MyPoint& cp1);
@@ -257,7 +227,7 @@ namespace CVSystem
 		CVSystem::CD_Cdt GetCDT(std::vector<MyPoint> pPoly, std::vector<std::vector<MyPoint>> cPoly, bool shouldRefine = true, bool isST = false);
 		
 		// create CDT
-		CVSystem::CD_Cdt GetCDTWithRectangleBorder(std::vector<std::vector<MyPoint>> polygons);
+		// CVSystem::CD_Cdt GetCDTWithRectangleBorder(std::vector<std::vector<MyPoint>> polygons);
 
 		// create ST CDT 
 		CVSystem::CD_Cdt GetSTCDTWithRectangleBorder(std::vector<std::vector<MyPoint>> polygons, std::vector<std::vector<MyPoint>> STpolygons);
@@ -269,10 +239,10 @@ namespace CVSystem
 		void AssignVertexIndex(CVSystem::CD_Cdt& cdt);
 
 		// create CDT		
-		CVSystem::CD_Cdt GetKMLCDT(std::vector<MyPoint> pPoly, std::vector<std::vector<MyPoint>> cPoly, bool shouldRefine = true);
+		// CVSystem::CD_Cdt GetKMLCDT(std::vector<MyPoint> pPoly, std::vector<std::vector<MyPoint>> cPoly, bool shouldRefine = true);
 
 		// create CDT
-		CVSystem::CD_Cdt GetKMLCDT(std::vector<std::vector<MyPoint>> polygons);
+		// CVSystem::CD_Cdt GetKMLCDT(std::vector<std::vector<MyPoint>> polygons);
 
 		// Original Triangulation (Deprecated)
 		std::vector<MyPoint> GetPolygonO(potrace_curve_t curve);
@@ -350,10 +320,10 @@ namespace CVSystem
 		int _w_scaled;	// scaled image width
 		int _h_scaled;	// scaled image height
 
-		// Gaussian refiner
+		//// Gaussian refiner
 		CSSSmoothing*	 _cssSmoothing;
 
-		// Potrace
+		//// Potrace
 		potrace_state_t* _trace_state;
 		potrace_state_t* _trace_stateST;
 
