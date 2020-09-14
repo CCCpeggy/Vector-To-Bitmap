@@ -64,8 +64,8 @@ namespace CVSystem
 		//void FreeDilatedLabelMap();
 
 		////Otsu
-		int Threshold(int *hist);
-		void ComputeOtsuGaussian();  
+		static int Threshold(int *hist);
+		static cv::Mat ComputeOtsuGaussian(cv::Mat oriInpImg);
 		//cv::Mat ComputeOtsuGaussian(std::string fileName, bool isExport);
 		//void SetOutputBinaryStr(std::string filePath) { binary_output = filePath; }	//回傳檔案位置
 		//std::string GetOutputBinaryStr() { return this->binary_output; }	//回傳檔案位置

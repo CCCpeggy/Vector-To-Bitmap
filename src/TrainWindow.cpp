@@ -116,7 +116,11 @@ TrainWindow(const int x, const int y)
 		pty += 60;
 
 		Fl_Button* openMyObjBtn = new Fl_Button(605, pty, 180, 20, "Open MyObj");
-		openMyObjBtn->callback((Fl_Callback*)openFileDialog, this);
+		openMyObjBtn->callback((Fl_Callback*)openMyObjFileDialog, this);
+		pty += 30;
+
+		Fl_Button* openBitmapjBtn = new Fl_Button(605, pty, 180, 20, "Open Bitmap");
+		openBitmapjBtn->callback((Fl_Callback*)openBitmapFileDialog, this);
 		pty += 30;
 
 		Fl_Button* saveImgBtn = new Fl_Button(605, pty, 180, 20, "Save");

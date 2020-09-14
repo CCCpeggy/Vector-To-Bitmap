@@ -58,14 +58,14 @@ int CVSystem::ScreentoneSegmentation::Threshold(int* hist) //compute the thresho
 	return maxT;
 }
 
-void CVSystem::ScreentoneSegmentation::ComputeOtsuGaussian()
+cv::Mat CVSystem::ScreentoneSegmentation::ComputeOtsuGaussian(cv::Mat oriInpImg)
 {
 	std::cout << "進去Otsu_Gaussian" << std::endl;
 
 	//轉灰階	
 	//cv::Mat gray_image = this->oriInpImg.clone();
 	cv::Mat gray_image;
-	cv::cvtColor(this->oriInpImg, gray_image, CV_BGR2GRAY);
+	cv::cvtColor(oriInpImg, gray_image, CV_BGR2GRAY);
 
 	std::cout << "進去cvtColor" << std::endl;
 
@@ -85,12 +85,7 @@ void CVSystem::ScreentoneSegmentation::ComputeOtsuGaussian()
 	if (t == 0)
 	{
 		std::cout << "done" << std::endl;
-		//寫出二值化圖片
-		std::string ori_fileName = this->filename.substr(this->filename.find_last_of("/") + 1);
-		std::string FileName = MakeFileNameWithFlag(ori_fileName, 1200, "_B");
-		binary_output = SystemParams::str_Resources_Binarization + "/" + FileName;
-		cv::imwrite(binary_output, gray_image);
-		return;
+		return gray_image;
 	}
 	std::cout << "閾值為：" << t << std::endl;
 
@@ -247,16 +242,16 @@ void CVSystem::ScreentoneSegmentation::ComputeOtsuGaussian()
 		}
 	}
 
+
 	//局部二值化
 	//把全域local給值
-	cv::adaptiveThreshold(gray_image, local, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, SystemParams::G_block_size, SystemParams::G_params);
+	cv::Mat output;
+	// cv::adaptiveThreshold(gray_image, output, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, SystemParams::G_block_size, SystemParams::G_params);
+	cv::threshold(gray_image, output, 125, 255, CV_THRESH_BINARY);
 
+	cv::imwrite("gray_image2.png", output);
 	std::cout << "done" << std::endl;
-	//寫出二值化圖片
-	std::string ori_fileName = this->filename.substr(this->filename.find_last_of("/") + 1);
-	std::string fileName = MakeFileNameWithFlag(ori_fileName, 1200, "_B");
-	binary_output = SystemParams::str_Resources_Binarization + "/" + fileName;
-	cv::imwrite(binary_output, local);
+	return output;
 }
 
 cv::Mat CVSystem::ScreentoneSegmentation::Compute_Segmentation(cv::Mat image)

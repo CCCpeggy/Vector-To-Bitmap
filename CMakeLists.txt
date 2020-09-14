@@ -94,20 +94,17 @@ target_link_libraries(VectorToBitmapFLTK optimized
     ${Potrace_LIB_DIR}/Release/Potrace.lib)
 
 # CGAL
-set(CGAL_INCLUDE_DIRS
-    D:/VG_Library/CGAL-4.14.3/include
-    D:/VG_Library/CGAL-4.14.3/VC16/include
-    D:/VG_Library/CGAL-4.14.3/auxiliary/gmp/include)
-set(CGAL_GMP_LIB_DIRS D:/VG_Library/CGAL-4.14.3/auxiliary/gmp/lib)
-set(CGAL_LIB_DIR  D:/VG_Library/CGAL-4.14.3/VC16/lib)
-
-include_directories(${CGAL_INCLUDE_DIRS})
-target_link_libraries(VectorToBitmapFLTK ${CGAL_GMP_LIB_DIRS}/libgmp-10.lib)
-target_link_libraries(VectorToBitmapFLTK ${CGAL_GMP_LIB_DIRS}/libmpfr-4.lib)
-link_directories(${CGAL_GMP_LIB_DIRS})
-link_directories(${CGAL_LIB_DIR})
-link_directories(${CGAL_LIB_DIR}/Debug)
-link_directories(${CGAL_LIB_DIR}/Release)
+find_package(CGAL REQUIRED COMPONENTS  )
+if(CGAL_FOUND)
+    include_directories(${CGAL_DIR}/VC16/include)
+    include_directories(${CGAL_INCLUDE_DIRS})
+    include_directories(${MPFR_INCLUDES_DIR})
+    target_link_libraries(VectorToBitmapFLTK ${GMP_LIBRARIES})
+    target_link_libraries(VectorToBitmapFLTK ${MPFR_LIBRARIES})
+    target_link_libraries(VectorToBitmapFLTK CGAL::CGAL)
+else()
+  message("ERROR: this program requires CGAL and will not be compiled.")
+endif()
 
 # OpenCV
 set(OpenCV_DIR D:/VG_Library/opencv440/build/x64/vc15/lib)
@@ -124,15 +121,16 @@ target_link_libraries(VectorToBitmapFLTK ${OpenCV_LIBS})
 
 # Boost
 SET(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} "D:/VG_Library/boost_1_74_0")
-SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "D:/VG_Library/boost_1_74_0/libs")
+SET(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} "D:/VG_Library/boost_1_74_0/lib64-msvc-14.2")
 SET(BOOST_ROOT "D:/G_Library/boost_1_74_0")
-set(Boost_USE_STATIC_LIBS OFF) 
-set(Boost_USE_MULTITHREADED ON)  
-set(Boost_USE_STATIC_RUNTIME OFF) 
-find_package(Boost 1.48.0)
+set(Boost_USE_STATIC_LIBS TRUE) 
+find_package(Boost 1.48.0 COMPONENTS chrono REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS}) 
-target_link_libraries(VectorToBitmapFLTK D:/VG_Library/boost_1_74_0/stage/lib/libboost_chrono-vc142-mt-gd-x64-1_74.lib)
+# target_link_libraries(VectorToBitmapFLTK ${Boost_LIBRARIES})
+# target_link_libraries(VectorToBitmapFLTK D:/VG_Library/boost_1_74_0/lib64-msvc-14.2/boost_chrono-vc142-mt-gd-x64-1_74.lib)
+target_link_libraries(VectorToBitmapFLTK Boost::chrono)
+# message(${Boost_LIBRARIES})
 
 # Eigen
 SET(Eigen_INCLUDE_DIRS "D:/VG_Library/Eigen-3.3.7")

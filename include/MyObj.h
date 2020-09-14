@@ -26,7 +26,7 @@ private:
 public:
 	int img_width;
 	int img_height;
-	MyObj(): offsets(9) {
+	MyObj(): offsets(9), triangulator1(nullptr) {
 	}
 
 	void reset() {
@@ -79,7 +79,7 @@ public:
 		
 		ReadFromMYOBJ(myObjFilePath);
 		std::cout << "Load " << myObjFilePath << " Finish." << std::endl;
-		InitBuffer();
+		UpdateBuffer();
 	}
 
 	static void ReadFromMYOBJ(std::string meshFilename,
@@ -336,6 +336,16 @@ public:
 		glBindVertexArray(vao);
 
 		glGenBuffers(1, &vbo);
+		glGenBuffers(1, &blackEbo);
+		glGenBuffers(1, &whiteEbo);
+		glGenBuffers(1, &scEbo);
+		glGenBuffers(1, &whiteEbo2);
+		glGenBuffers(1, &scEbo2);
+	}
+
+	void UpdateBuffer() {
+		glBindVertexArray(vao);
+
 		glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
 		std::vector<float> vertics = GetVertics(vertexList);
@@ -343,36 +353,37 @@ public:
 
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), 0);
+		std::vector<unsigned int> triIndices;
 
-		//glBufferData(GL_ARRAY_BUFFER, sizeof(double) * vertexList.size(), &vertexList[0], GL_STATIC_DRAW);
+		if (bTriangles.size()) {
+			triIndices = GetIndices(bTriangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, blackEbo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		}
 
-		//glEnableVertexAttribArray(0);
-		//glVertexAttribPointer(0, 2, GL_DOUBLE, GL_FALSE, sizeof(CVSystem::MyPoint), (void*)((int)&(vertexList[0].x) - (int)&vertexList[0]));
+		if (wTriangles.size()) {
+			triIndices = GetIndices(wTriangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, whiteEbo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		}
 
-		std::vector<unsigned int> triIndices = GetIndices(bTriangles);
-		glGenBuffers(1, &blackEbo);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, blackEbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		if (scTriangles.size()) {
+			triIndices = GetIndices(scTriangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scEbo);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		}
 
-		triIndices = GetIndices(wTriangles);
-		glGenBuffers(1, &whiteEbo);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, whiteEbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		if (borderWTriangles.size()) {
+			triIndices = GetIndices(borderWTriangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, whiteEbo2);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		}
 
-		triIndices = GetIndices(scTriangles);
-		glGenBuffers(1, &scEbo);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scEbo);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
-
-		triIndices = GetIndices(borderWTriangles);
-		glGenBuffers(1, &whiteEbo2);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, whiteEbo2);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
-
-		triIndices = GetIndices(borderSCTriangles);
-		glGenBuffers(1, &scEbo2);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scEbo2);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		if (borderSCTriangles.size()) {
+			triIndices = GetIndices(borderSCTriangles);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scEbo2);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned int) * triIndices.size(), &triIndices[0], GL_STATIC_DRAW);
+		}
 	}
 
 	void DrawBlack() {
@@ -403,6 +414,15 @@ public:
 		glBindVertexArray(vao);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, scEbo2);
 		glDrawElements(GL_TRIANGLES, scTriangles.size() * 3, GL_UNSIGNED_INT, 0);
+	}
+
+	void DrawLines() {
+		glBegin(GL_LINES);
+		for (auto iter = lines.begin(); iter != lines.end(); iter++) {
+			glVertex2d((*iter)[0] / img_width * 2 - 1, (*iter)[1] / img_height * 2 - 1);
+			glVertex2d((*iter)[2] / img_width * 2 - 1, (*iter)[3] / img_height * 2 - 1);
+		}
+		glEnd();
 	}
 
 private:
@@ -441,15 +461,20 @@ private:
 		}
 		return false;
 	}
+	public:
 
-	void ExportTextureUnit(std::string imgPath)
+	std::vector<double*> lines;
+	void ReadFromBitmap(std::string imgPath)
 	{
 		std::cout << "Do Otsu\n";
-		scSegm->ComputeOtsuGaussian();
 
-		std::cout << "Running Segmentation\n";
 		cv::Mat imageROI;
 		imageROI = cv::imread(imgPath);
+		img_width = imageROI.cols;
+		img_height = imageROI.rows;
+		cv::imwrite("Origin.png", imageROI);
+		imageROI = scSegm->ComputeOtsuGaussian(imageROI);
+		std::cout << "Running Segmentation\n";
 		/*std::vector<std::vector<CVSystem::MyPoint>> sRects = ui.frame->GetGLWidget()->GetSelectRectangle();
 		if (sRects.size() != 0)
 		{
@@ -461,7 +486,7 @@ private:
 		{
 			imageROI = ui.frame->GetGLWidget()->GetTextureUnitSource();
 		}*/
-		cv::imwrite("Origin.png", imageROI);
+		cv::imwrite("Compute_Otsu_Gaussian.png", imageROI);
 		cv::Mat oriImg = CVSystem::ScreentoneSegmentation::Compute_Segmentation(imageROI);
 		cv::imwrite("Compute_Segmentation.png", oriImg);
 		bool isEmpty = true;
@@ -499,16 +524,15 @@ private:
 			triangulator1->LSCalculate2(oriImg, true, -offsetPixel, -offsetPixel);
 
 			//顯示三角的畫面
-			/*ui.frame->GetGLWidget()->SetTriangles(triangulator1->GetPartOffset(),
-				triangulator1->GetVertexList(),
-				triangulator1->GetIndexedTriangles(),
-				triangulator1->GetBorderSCTriangles(),
-				triangulator1->GetBorderWTriangles(),
-				triangulator1->GetSCTriangles(),
-				triangulator1->GetWTriangles(),
-				triangulator1->GetBTriangles());
-			ui.frame->GetGLWidget()->SetDrawMode(DRAW_RESULT);*/
-
+			vertexList = triangulator1->GetVertexList();
+			indexedTriangles = triangulator1->GetIndexedTriangles(),
+			borderSCTriangles = triangulator1->GetBorderSCTriangles(),
+			borderWTriangles = triangulator1->GetBorderWTriangles(),
+			scTriangles = triangulator1->GetSCTriangles(),
+			wTriangles = triangulator1->GetWTriangles(),
+			bTriangles = triangulator1->GetBTriangles();
+			lines = triangulator1->debugLines;
+			UpdateBuffer();
 		}
 
 	}

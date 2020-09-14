@@ -24,6 +24,7 @@ class PreView : public Fl_Gl_Window
 		virtual void render();
 		void setImgOutputSize(int width, int height);
 		void openMyObjFile(std::string filePath);
+		void openBitmapFile(std::string filePath);
 
 		// pick a point (for when the mouse goes down)
 		void doPick();

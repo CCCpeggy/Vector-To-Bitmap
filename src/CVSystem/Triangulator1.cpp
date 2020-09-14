@@ -9,6 +9,21 @@
 #include "../../Include/Common.h"
 using namespace CVSystem;
 
+CVSystem::Triangulator1::Triangulator1() :
+	_w_scaled(0),
+	_h_scaled(0),
+	_trace_state(0),
+	_has_tone(false),
+	_cssSmoothing(new CSSSmoothing())
+{
+}
+
+CVSystem::Triangulator1::~Triangulator1()
+{
+	if (_trace_state)  potrace_state_free(_trace_state);
+	if (_cssSmoothing) delete _cssSmoothing;
+}
+
 void CVSystem::Triangulator1::TraceImage(std::string strFilename, cv::Mat img, int* mask, int* dilatedMask, bool isLog)
 {
 	// filename
@@ -184,6 +199,13 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 		}
 
 		if (pPolySimple.size() == 0) { continue; }
+		cv::Mat imgPoly = cv::Mat(img.size(), CV_8UC3, cv::Scalar(255, 255, 255));
+		std::vector<cv::Point> points;
+		for (int i = 0; i < pPolySimple.size(); i++) {
+			points.push_back(cv::Point(pPolySimple[i].x, pPolySimple[i].y));
+		}
+		cv::fillPoly(imgPoly, points, cv::Scalar(0, 0, 0));
+		cv::imwrite("imgPoly.png", imgPoly);
 		//std::cout<<"T "<<pPolySimple.size();
 		//for(size_t a = 0; a < cPolySimple.size(); a++) { std::cout<<" "<<cPolySimple[a].size(); }
 		CD_Cdt cdt_blk = GetCDT(pPolySimple, cPolySimple);
@@ -193,7 +215,7 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 
 		for (CD_Cdt::Finite_faces_iterator fit = cdt_blk.finite_faces_begin(); fit != cdt_blk.finite_faces_end(); ++fit)
 		{
-			if (fit->is_in_domain())
+			//if (fit->is_in_domain())
 			{
 				MyTriangle tr = MyTriangle(MyPoint(fit->vertex(0)->point().x(), fit->vertex(0)->point().y()),
 					MyPoint(fit->vertex(1)->point().x(), fit->vertex(1)->point().y()),
@@ -557,6 +579,46 @@ std::vector<CVSystem::MyQuad> CVSystem::Triangulator1::GetBezierQuadLS(std::vect
 }
 
 
+void drawCDT(std::string name, CD_Cdt cdt) {
+	cv::Mat imgCDT = cv::Mat(cv::Size(500, 500), CV_8UC3, cv::Scalar(255, 255, 255));
+	/*for (auto it = cdt.finite_edges_begin(); it != cdt.finite_edges_end(); ++it)
+	{
+		cv::line(imgCDT,
+			cv::Point(it->first->vertex(0)->point().x(), it->first->vertex(0)->point().y()),
+			cv::Point(it->first->vertex(1)->point().x(), it->first->vertex(1)->point().y()),
+			cv::Scalar(0, 0, 0));
+	}
+	cv::imwrite(name + "edge.png", imgCDT);
+
+	imgCDT = cv::Mat(cv::Size(500, 500), CV_8UC3, cv::Scalar(255, 255, 255));*/
+	for (auto it = cdt.finite_vertices_begin(); it != cdt.finite_vertices_end(); ++it)
+	{
+		cv::circle(imgCDT,
+			cv::Point(it->point().x(), it->point().y()),
+			3,
+			cv::Scalar(0, 0, 0));
+	}
+	cv::imwrite(name + "_vertex.png", imgCDT);
+
+	imgCDT = cv::Mat(cv::Size(500, 500), CV_8UC3, cv::Scalar(255, 255, 255));
+	for (auto it = cdt.finite_faces_begin(); it != cdt.finite_faces_end(); ++it)
+	{
+		cv::line(imgCDT,
+			cv::Point(it->vertex(0)->point().x(), it->vertex(0)->point().y()),
+			cv::Point(it->vertex(1)->point().x(), it->vertex(1)->point().y()),
+			cv::Scalar(0, 0, 0));
+		cv::line(imgCDT,
+			cv::Point(it->vertex(1)->point().x(), it->vertex(1)->point().y()),
+			cv::Point(it->vertex(2)->point().x(), it->vertex(2)->point().y()),
+			cv::Scalar(0, 0, 0));
+		cv::line(imgCDT,
+			cv::Point(it->vertex(2)->point().x(), it->vertex(2)->point().y()),
+			cv::Point(it->vertex(0)->point().x(), it->vertex(0)->point().y()),
+			cv::Scalar(0, 0, 0));
+	}
+	cv::imwrite(name + "_face.png", imgCDT);
+}
+
 CVSystem::CD_Cdt CVSystem::Triangulator1::GetCDT(std::vector<CVSystem::MyPoint> pPoly, std::vector<std::vector<CVSystem::MyPoint>> cPoly, bool shouldRefine, bool isST)
 {
 	CD_Cdt cd_cdt;
@@ -589,6 +651,7 @@ CVSystem::CD_Cdt CVSystem::Triangulator1::GetCDT(std::vector<CVSystem::MyPoint> 
 		lastY = pPoly[a].y;
 	}
 	handles.push_back(hdls1);
+
 
 	if (cPoly.size() > 0)
 	{
@@ -627,20 +690,64 @@ CVSystem::CD_Cdt CVSystem::Triangulator1::GetCDT(std::vector<CVSystem::MyPoint> 
 	// Get holes
 	std::list<CD_Point> seeds = GetHoleSeeds(pPoly, cPoly, isST);
 	// set constraints
+	debugLines.clear();
+
+	cv::Mat imgLine = cv::Mat(cv::Size(500, 500), CV_8UC3, cv::Scalar(255, 255, 255));
 	for (size_t a = 0; a < handles.size(); a++)
 	{
 		std::vector<CD_VHandle> hdls = handles[a];
 		for (size_t b = 0; b < hdls.size(); b++)
 		{
-			if (b == 0) { cd_cdt.insert_constraint(hdls[hdls.size() - 1], hdls[b]); }
-			else { cd_cdt.insert_constraint(hdls[b - 1], hdls[b]); }
+			if (b == 0) 
+			{
+				cd_cdt.insert_constraint(hdls[hdls.size() - 1], hdls[b]); 
+				debugLines.push_back(new double[4]{ 
+					hdls[hdls.size() - 1]->point().x(), hdls[hdls.size() - 1]->point().y(),
+					hdls[b]->point().x(), hdls[b]->point().y()
+				});
+				cv::line(imgLine,
+					cv::Point(hdls[hdls.size() - 1]->point().x(), hdls[hdls.size() - 1]->point().y()),
+					cv::Point(hdls[b]->point().x(), hdls[b]->point().y()),
+					cv::Scalar(0, 0, 0));
+			}
+			else 
+			{ 
+				cd_cdt.insert_constraint(hdls[b - 1], hdls[b]);
+				debugLines.push_back(new double[4]{
+					hdls[b - 1]->point().x(), hdls[b - 1]->point().y(),
+					hdls[b]->point().x(), hdls[b]->point().y()
+				});
+				cv::line(imgLine, 
+					cv::Point(hdls[b - 1]->point().x(), hdls[b - 1]->point().y()), 
+					cv::Point(hdls[b]->point().x(), hdls[b]->point().y()), 
+					cv::Scalar(0, 0, 0));
+			}
 		}
 	}
-	if (shouldRefine) { CGAL::refine_Delaunay_mesh_2(cd_cdt, seeds.begin(), seeds.end(), CD_Criteria(SystemParams::t_delaunay_aspect_bound, SystemParams::t_delaunay_max_length)); }
-	else
-	{	// use small factor to obtain less Delaunay
-		CGAL::refine_Delaunay_mesh_2(cd_cdt, seeds.begin(), seeds.end(), CD_Criteria(0.01, SystemParams::t_delaunay_max_length));
+	cv::imwrite("imgLine.png", imgLine);
+
+
+
+	cv::Mat imgSeed = cv::Mat(cv::Size(500, 500), CV_8UC3, cv::Scalar(255, 255, 255));
+	for (auto seed : seeds) {
+		cv::circle(imgSeed,
+			cv::Point(seed.x(), seed.y()),
+			3,
+			cv::Scalar(0, 0, 0));
 	}
+	cv::imwrite("imgSeed.png", imgSeed);
+
+	// TODO: error
+	//if (shouldRefine) { CGAL::refine_Delaunay_mesh_2(cd_cdt, seeds.begin(), seeds.end(), CD_Criteria(SystemParams::t_delaunay_aspect_bound, SystemParams::t_delaunay_max_length)); }
+	//else
+	//{	// use small factor to obtain less Delaunay
+	//	CGAL::refine_Delaunay_mesh_2(cd_cdt, seeds.begin(), seeds.end(), CD_Criteria(0.01, SystemParams::t_delaunay_max_length));
+	//}
+
+	drawCDT("before", cd_cdt);
+	CGAL::refine_Delaunay_mesh_2(cd_cdt, seeds.begin(), seeds.end(), CD_Criteria(0, 0));
+	drawCDT("after", cd_cdt);
+
 	return cd_cdt;
 }
 
@@ -668,8 +775,10 @@ CVSystem::CD_Cdt CVSystem::Triangulator1::GetSTCDTWithRectangleBorder(std::vecto
 				hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
 			}
 			else {
-				if (!UtilityFunctions::pointEqual(lastX, lastY, cPs[b].x, cPs[b].y, 1e-5))
-					hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
+				if (UtilityFunctions::pointEqual(lastX, lastY, cPs[b].x, cPs[b].y, 1e-5)) {
+					continue;
+				}
+				hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
 			}
 			lastX = cPs[b].x;
 			lastY = cPs[b].y;
@@ -689,8 +798,8 @@ CVSystem::CD_Cdt CVSystem::Triangulator1::GetSTCDTWithRectangleBorder(std::vecto
 				hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
 			}
 			else {
-				if (!UtilityFunctions::pointEqual(lastX, lastY, cPs[b].x, cPs[b].y, 1e-5))
-					hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
+				if (UtilityFunctions::pointEqual(lastX, lastY, cPs[b].x, cPs[b].y, 1e-5)) continue;
+				hdls.push_back(cd_cdt.insert(CD_Point(cPs[b].x, cPs[b].y)));
 			}
 			lastX = cPs[b].x;
 			lastY = cPs[b].y;
@@ -702,13 +811,20 @@ CVSystem::CD_Cdt CVSystem::Triangulator1::GetSTCDTWithRectangleBorder(std::vecto
 	std::vector<CD_VHandle> borderVHandles;
 	for (size_t a = 0; a < border.size(); a++) { borderVHandles.push_back(cd_cdt.insert(CD_Point(border[a].x, border[a].y))); }
 	vHandles.push_back(borderVHandles);
+
 	for (size_t a = 0; a < vHandles.size(); a++)
 	{
 		std::vector<CD_VHandle> hdls = vHandles[a];
 		for (size_t b = 0; b < hdls.size(); b++)
 		{
-			if (b == 0) { cd_cdt.insert_constraint(hdls[hdls.size() - 1], hdls[b]); }
-			else { cd_cdt.insert_constraint(hdls[b - 1], hdls[b]); }
+			if (b == 0)
+			{
+				cd_cdt.insert_constraint(hdls[hdls.size() - 1], hdls[b]);
+			}
+			else
+			{
+				cd_cdt.insert_constraint(hdls[b - 1], hdls[b]);
+			}
 		}
 	}
 	CGAL::refine_Delaunay_mesh_2(cd_cdt, CD_Criteria(SystemParams::t_delaunay_aspect_bound, SystemParams::t_delaunay_max_length));

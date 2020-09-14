@@ -151,7 +151,8 @@ namespace CVSystem
 	public:
 		Triangulator1();
 		~Triangulator1();
-		
+
+		std::vector<double*> debugLines;
 		void TraceImage(std::string strFilename, cv::Mat img, int* mask, int* dilatedMask, bool isLog);	// Trace
 		
 		// void OCalculate();		// Original (Deprecated)

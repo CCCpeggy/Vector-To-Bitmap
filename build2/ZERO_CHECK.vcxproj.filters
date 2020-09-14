@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="D:\workplace\Comic\VectorToBitmapFLTK\build2\CMakeFiles\06afdaa0fa816f5eb91222d62d08ec4a\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{B377CF02-D63F-3FEA-84CC-83913F9C2111}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

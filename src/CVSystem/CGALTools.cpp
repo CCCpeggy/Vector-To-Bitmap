@@ -10,15 +10,18 @@
 
 void CVSystem::insert_polygon(PD_Cdt& cdt, const Polygon_2& polygon)
 {
-	if ( polygon.is_empty() ) return;
-	PD_Cdt::Vertex_handle v_prev=cdt.insert(*CGAL::cpp11::prev(polygon.vertices_end()));
-	for (Polygon_2::Vertex_iterator vit = polygon.vertices_begin(); vit != polygon.vertices_end();++vit)
+	if ( polygon.is_empty() || !polygon.size() ) return;
+	PD_Cdt::Vertex_handle v_last = cdt.insert(*CGAL::cpp11::prev(polygon.vertices_end()));
+	PD_Cdt::Vertex_handle v_prev = v_last;
+	int size = polygon.size() - 1;
+	for (Polygon_2::Vertex_iterator vit = polygon.vertices_begin(); size;++vit, size--)
 	{
 		PD_Cdt::Vertex_handle vh=cdt.insert(*vit);
 		//if(vh != v_prev)
 		cdt.insert_constraint(vh,v_prev);
 		v_prev=vh;
-	}  
+	}
+	cdt.insert_constraint(v_prev, v_last);
 }
 
 void CVSystem::mark_domains(PD_Cdt& ct, PD_Cdt::Face_handle start, int index, std::list<PD_Cdt::Edge>& border )

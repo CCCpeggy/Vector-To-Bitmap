@@ -104,6 +104,7 @@ void PreView::draw()
 			return;
 		}
 		firstDraw = false;
+		myObj.InitBuffer();
 		tw->textureView->openTexture("../asset/in.png");
 
 		basicTeTextureShader.Init();
@@ -135,6 +136,7 @@ void PreView::draw()
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 	basicTeTextureShader.Disable();
 
+	//myObj.DrawLines();
 }
 
 void PreView::render()
@@ -190,6 +192,15 @@ void PreView::setImgOutputSize(int width=0, int height=0)
 void PreView::openMyObjFile(std::string filePath)
 {
 	myObj.LoadFile(filePath);
+
+	screenToneShader.Enable();
+	screenToneShader.SetInImgSize(myObj.img_width, myObj.img_height);
+	screenToneShader.Disable();
+}
+
+void PreView::openBitmapFile(std::string filePath)
+{
+	myObj.ReadFromBitmap(filePath);
 
 	screenToneShader.Enable();
 	screenToneShader.SetInImgSize(myObj.img_width, myObj.img_height);

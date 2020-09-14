@@ -1,0 +1,114 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="16.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CallBacks.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\ControlPoint.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Track.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\PreView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\TextureView.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\TrainWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Shader\ShaderObject.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Shader\BasicTextureShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Shader\ScreentoneShader.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Common.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\include\glad4.6\src\glad.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\ScreentoneSegmentation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\SystemParams.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\Triangulator1.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\PixelsInTriangle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\PointInTrianglesTest.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\CurveInterpolation.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\CurveFitting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\UtilityFunctions.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\CSSSmoothing.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\CurveRDP.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\LinesSorter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CVSystem\CGALTools.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D:\workplace\Comic\VectorToBitmapFLTK\include\Shader\ShaderObject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\workplace\Comic\VectorToBitmapFLTK\include\Shader\BasicTextureShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\workplace\Comic\VectorToBitmapFLTK\include\Shader\ScreentoneShader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\workplace\Comic\VectorToBitmapFLTK\include\Common.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="D:\workplace\Comic\VectorToBitmapFLTK\include\MyObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="D:\workplace\Comic\VectorToBitmapFLTK\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\CallBacks.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\ControlPoint.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Object.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\Track.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\PreView.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\TextureView.H" />
+    <None Include="D:\workplace\Comic\VectorToBitmapFLTK\src\TrainWindow.H" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{9A50CE5F-14D8-3A8D-985A-1A84418D17B1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{684FAA31-D070-3F5D-8B13-74524B4DA38C}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

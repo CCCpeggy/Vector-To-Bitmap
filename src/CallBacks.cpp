@@ -247,10 +247,17 @@ void saveImg(Fl_Widget*, TrainWindow* tw) {
 	Common::SavePng("out.png", fbxTex->idx, fbxTex->width, fbxTex->height);
 }
 
-void openFileDialog(Fl_Widget* widget, TrainWindow* tw)
+void openMyObjFileDialog(Fl_Widget* widget, TrainWindow* tw)
 {
-	Fl_File_Chooser* fc = new Fl_File_Chooser(".", "Myobj Files (*.{myobj})", 0, "Input File");
+	Fl_File_Chooser* fc = new Fl_File_Chooser(".", "Myobj Files (*.{myobj})", Fl_File_Chooser::SINGLE, "Input File");
 	fc->callback(openMyObjFile, tw);
+	fc->show();
+}
+
+void openBitmapFileDialog(Fl_Widget*, TrainWindow* tw)
+{
+	Fl_File_Chooser* fc = new Fl_File_Chooser(".", "Image Files (*.{bmp,gif,jpg,png})", Fl_File_Chooser::SINGLE, "Input File");
+	fc->callback(openBitmapFile, tw);
 	fc->show();
 }
 
@@ -258,6 +265,13 @@ void openMyObjFile(Fl_File_Chooser* w, void* vtw)
 {
 	TrainWindow* tw = (TrainWindow*)vtw;
 	tw->preView->openMyObjFile(w->value());
+	tw->preView->redraw();
+}
+
+void openBitmapFile(Fl_File_Chooser* w, void* vtw)
+{
+	TrainWindow* tw = (TrainWindow*)vtw;
+	tw->preView->openBitmapFile(w->value());
 	tw->preView->redraw();
 }
 
