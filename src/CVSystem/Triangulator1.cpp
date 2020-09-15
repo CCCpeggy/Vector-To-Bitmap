@@ -12,70 +12,21 @@ using namespace CVSystem;
 CVSystem::Triangulator1::Triangulator1() :
 	_w_scaled(0),
 	_h_scaled(0),
-	_trace_state(0),
-	_has_tone(false),
 	_cssSmoothing(new CSSSmoothing())
 {
 }
 
 CVSystem::Triangulator1::~Triangulator1()
 {
-	if (_trace_state)  potrace_state_free(_trace_state);
 	if (_cssSmoothing) delete _cssSmoothing;
 }
 
-void CVSystem::Triangulator1::TraceImage(std::string strFilename, cv::Mat img, int* mask, int* dilatedMask, bool isLog)
+potrace_state_t* CVSystem::Triangulator1::TraceImage(cv::Mat img)
 {
-	// filename
-	this->_strFilename = strFilename;
-
-	if (isLog)
-		std::cout << "Initializing Triangulation\n";
+	std::cout << "Initializing Triangulation\n";
 
 	cv::Mat invMaskImg;
-	if (mask)
-	{
-		this->_has_tone = true;
-		cv::Mat imgMaskDilated = cv::Mat::zeros(img.rows, img.cols, CV_8UC1);
-		for (int a = 0; a < imgMaskDilated.cols; a++)
-		{
-			for (int b = 0; b < imgMaskDilated.rows; b++)
-			{
-				if (dilatedMask[a + b * img.cols] != -1) { imgMaskDilated.ptr<uchar>(b, a)[0] = 255; }
-			}
-		}
-
-		cv::Mat imgMask = cv::Mat::zeros(img.rows, img.cols, CV_8UC1);
-		for (int a = 0; a < imgMask.cols; a++)
-		{
-			for (int b = 0; b < imgMask.rows; b++)
-			{
-				if (mask[a + b * img.cols] != -1) { imgMask.ptr<uchar>(b, a)[0] = 255; }
-			}
-		}
-
-		cv::bitwise_not(imgMask, invMaskImg);
-		cv::distanceTransform(invMaskImg, this->_distance_img, CV_DIST_L2, CV_DIST_MASK_5);
-		invMaskImg.convertTo(invMaskImg, CV_8UC1);
-		this->_mask = imgMask.clone();
-		this->_dilated_mask = imgMaskDilated.clone();
-
-		img += imgMask;
-
-		imgMask.release();
-		imgMaskDilated.release();
-	}
-	// Dimension
-	this->_w_scaled = img.cols * SystemParams::t_scale_factor;
-	this->_h_scaled = img.rows * SystemParams::t_scale_factor;
-	cv::Size sz(_w_scaled, _h_scaled);
-
-	if (this->_has_tone)
-	{
-		this->_mask_scaled = this->_mask;
-		this->_dilated_mask_scaled = this->_dilated_mask;
-		this->_distance_img_scaled = this->_distance_img;
-	}
+	
 	cv::Mat inpImg = img.clone();
 
 	potrace_bitmap_t* bm = GetBM(inpImg);
@@ -85,25 +36,9 @@ void CVSystem::Triangulator1::TraceImage(std::string strFilename, cv::Mat img, i
 	param->opticurve = SystemParams::t_opticurve/*1*/;
 	param->opttolerance = SystemParams::t_opttolerance/*0.2*/;
 	param->progress.callback = NULL;
-	_trace_state = potrace_trace(param, bm);
+	potrace_state_t* trace_state = potrace_trace(param, bm);
 	//cv::imwrite("FFFF.png", inpImg);
 
-	if (mask)
-	{
-		STimg = invMaskImg.clone();
-		potrace_bitmap_t* bmST = GetBM(invMaskImg);
-		// TracingST
-		potrace_param_t* paramST = potrace_param_default();
-		paramST->opticurve = SystemParams::t_opticurve;
-		paramST->opttolerance = SystemParams::t_opttolerance;
-		paramST->progress.callback = NULL;
-		_trace_stateST = potrace_trace(paramST, bmST);
-
-		potrace_path_t* p = _trace_state->plist;
-		potrace_path_t* lastp;
-		for (; p; p = p->next) { lastp = p; }
-		//lastp->next = _trace_stateST->plist;
-	}
 	// Free resources
 	potrace_param_free(param);
 	free(bm->map);
@@ -111,19 +46,20 @@ void CVSystem::Triangulator1::TraceImage(std::string strFilename, cv::Mat img, i
 
 	inpImg.release();
 
-	//
-	//this->_has_tone = false;
-	//
+	return trace_state;
 }
 
-void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offsetX, float offsetY)
+void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offsetX, float offsetY, std::vector<cv::Mat> stMasks)
 {
-	traceImg = cv::Mat(img.size(), CV_8UC3, cv::Scalar(255, 255, 255));
-	traceImgS = cv::Mat(img.size(), CV_8UC3, cv::Scalar(255, 255, 255));
 	// Timing calculation
 	using namespace boost::chrono;
 	auto total_smoothing_time = 0;
 	auto ls_time = 0;
+
+	potrace_state_t* trace_state = TraceImage(img);
+
+	_w_scaled = img.cols * SystemParams::t_scale_factor;
+	_h_scaled = img.rows * SystemParams::t_scale_factor;
 
 	std::vector<MyTriangle>			  scTriangles;
 	std::vector<MyTriangle>			  whiteTriangles;
@@ -133,7 +69,8 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 
 	std::vector<std::vector<MyPoint>> oriPoly;
 	// Get Seed
-	for (potrace_path_t* p = _trace_state->plist; p; p = p->next)
+	int idx = 0;
+	for (potrace_path_t* p = trace_state->plist; p; p = p->next)
 	{
 		if (p->sign == '-') continue;
 		std::vector<MyPoint> pPolySimple;
@@ -205,7 +142,9 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 			points.push_back(cv::Point(pPolySimple[i].x, pPolySimple[i].y));
 		}
 		cv::fillPoly(imgPoly, points, cv::Scalar(0, 0, 0));
-		cv::imwrite("imgPoly.png", imgPoly);
+		char outputName[30];
+		sprintf(outputName, "imgPoly_%d.png", idx++);
+		cv::imwrite(outputName, imgPoly);
 		//std::cout<<"T "<<pPolySimple.size();
 		//for(size_t a = 0; a < cPolySimple.size(); a++) { std::cout<<" "<<cPolySimple[a].size(); }
 		CD_Cdt cdt_blk = GetCDT(pPolySimple, cPolySimple);
@@ -215,7 +154,7 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 
 		for (CD_Cdt::Finite_faces_iterator fit = cdt_blk.finite_faces_begin(); fit != cdt_blk.finite_faces_end(); ++fit)
 		{
-			//if (fit->is_in_domain())
+			if (fit->is_in_domain())
 			{
 				MyTriangle tr = MyTriangle(MyPoint(fit->vertex(0)->point().x(), fit->vertex(0)->point().y()),
 					MyPoint(fit->vertex(1)->point().x(), fit->vertex(1)->point().y()),
@@ -236,158 +175,132 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 		}
 	}
 
-	////////////////////
-	//for debug
-
-	cv::Mat AllStep = cv::Mat(img.size(), CV_8UC3, cv::Scalar(200, 200, 200));
-	for (int a = 0; a < AllStep.cols; a++)
-	{
-		for (int b = 0; b < AllStep.rows; b++)
-		{
-			if (img.ptr<uchar>(b, a)[0] < 127)
-			{
-				AllStep.at<cv::Vec3b>(b, a) = cv::Vec3b(0, 0, 0);
-			}
-			else
-			{
-				AllStep.at<cv::Vec3b>(b, a) = cv::Vec3b(100, 100, 100);
-			}
-		}
-	}
-
-	for (int pIdx = 0; pIdx < allPolygons.size(); pIdx++)
-	{
-		for (int Idx = 0; Idx < allPolygons[pIdx].size() - 1; Idx++)
-		{
-			cv::circle(AllStep, cv::Point2d(allPolygons[pIdx][Idx].x, allPolygons[pIdx][Idx].y), 3, cv::Scalar(0, 0, 255), -1);
-		}
-	}
-	testImg = AllStep.clone();
-
-	////////////////////
-
 	std::cout << "ST\n";
 
-	if (this->_has_tone)
+	if (stMasks.size() > 0)
 	{
-		testcount = 0;
-		for (potrace_path_t* p = _trace_stateST->plist; p; p = p->next)
-		{
-			if (p->sign == '-') continue;
-			std::vector<MyPoint> pPolySimple;
-			// Timing
-			auto startGauss1 = steady_clock::now();
-			std::vector<MyPoint> pPolyDense = GetPolygonLS(p);
-			// Timing
-			auto durGauss1 = steady_clock::now() - startGauss1;
-			total_smoothing_time += duration_cast<milliseconds>(durGauss1).count();
-
-			if (pPolyDense.size() == 0) { continue; }
-
-			std::vector<bool> pFlag;
-			RDPSimplification(pPolyDense, pPolySimple, pFlag);
-
-			if (pPolySimple.size() > 2)
+		for (auto stMark : stMasks) {
+			potrace_state_t* trace_stateST = TraceImage(stMark);
+			for (potrace_path_t* p = trace_stateST->plist; p; p = p->next)
 			{
-				auto startLS1 = steady_clock::now();
-
-				std::vector<MyQuad> tempQuads = GetBezierQuadLS(pPolyDense, pFlag, true);
-				this->_lsQuads.insert(this->_lsQuads.begin(), tempQuads.begin(), tempQuads.end());
-
-				auto durLS1 = steady_clock::now() - startLS1;
-				ls_time += duration_cast<milliseconds>(durLS1).count();
-			}
-			std::vector<std::vector<MyPoint>> cPolySimple;
-
-			for (potrace_path_t* q = p->childlist; q; q = q->sibling)
-			{
-				std::vector<MyPoint> qPolyTempSimple;
-
+				if (p->sign == '-') continue;
+				std::vector<MyPoint> pPolySimple;
 				// Timing
-				auto start2 = steady_clock::now();
-
-				std::vector<MyPoint> qPolyTempDense = GetPolygonLS(q);
-
+				auto startGauss1 = steady_clock::now();
+				std::vector<MyPoint> pPolyDense = GetPolygonLS(p);
 				// Timing
-				auto durGauss2 = steady_clock::now() - start2;
-				total_smoothing_time += duration_cast<milliseconds>(durGauss2).count();
+				auto durGauss1 = steady_clock::now() - startGauss1;
+				total_smoothing_time += duration_cast<milliseconds>(durGauss1).count();
 
-				if (qPolyTempDense.size() == 0) { continue; }
-				std::vector<bool> qFlagTemp;
-				RDPSimplification(qPolyTempDense, qPolyTempSimple, qFlagTemp);
-				if (qPolyTempSimple.size() > 2)
+				if (pPolyDense.size() == 0) { continue; }
+
+				std::vector<bool> pFlag;
+				RDPSimplification(pPolyDense, pPolySimple, pFlag);
+
+				if (pPolySimple.size() > 2)
 				{
-					// Timing
-					auto startLS2 = steady_clock::now();
+					auto startLS1 = steady_clock::now();
 
-					std::vector<MyQuad> tempQuads = GetBezierQuadLS(qPolyTempDense, qFlagTemp, false);
+					std::vector<MyQuad> tempQuads = GetBezierQuadLS(pPolyDense, pFlag, true);
 					this->_lsQuads.insert(this->_lsQuads.begin(), tempQuads.begin(), tempQuads.end());
 
-					if (q->sign == '+')
-						cPolySimple.push_back(qPolyTempSimple);
-					else
-					{//reverse for ReduceSTpoint()
-						std::vector<MyPoint> qPolySimpleCounterclockwise(qPolyTempSimple.rbegin(), qPolyTempSimple.rend());
-						cPolySimple.push_back(qPolySimpleCounterclockwise);
-					}
+					auto durLS1 = steady_clock::now() - startLS1;
+					ls_time += duration_cast<milliseconds>(durLS1).count();
+				}
+				std::vector<std::vector<MyPoint>> cPolySimple;
+
+				for (potrace_path_t* q = p->childlist; q; q = q->sibling)
+				{
+					std::vector<MyPoint> qPolyTempSimple;
 
 					// Timing
-					auto durLS2 = steady_clock::now() - startLS2;
-					ls_time += duration_cast<milliseconds>(durLS2).count();
+					auto start2 = steady_clock::now();
+
+					std::vector<MyPoint> qPolyTempDense = GetPolygonLS(q);
+
+					// Timing
+					auto durGauss2 = steady_clock::now() - start2;
+					total_smoothing_time += duration_cast<milliseconds>(durGauss2).count();
+
+					if (qPolyTempDense.size() == 0) { continue; }
+					std::vector<bool> qFlagTemp;
+					RDPSimplification(qPolyTempDense, qPolyTempSimple, qFlagTemp);
+					if (qPolyTempSimple.size() > 2)
+					{
+						// Timing
+						auto startLS2 = steady_clock::now();
+
+						std::vector<MyQuad> tempQuads = GetBezierQuadLS(qPolyTempDense, qFlagTemp, false);
+						this->_lsQuads.insert(this->_lsQuads.begin(), tempQuads.begin(), tempQuads.end());
+
+						if (q->sign == '+')
+							cPolySimple.push_back(qPolyTempSimple);
+						else
+						{//reverse for ReduceSTpoint()
+							std::vector<MyPoint> qPolySimpleCounterclockwise(qPolyTempSimple.rbegin(), qPolyTempSimple.rend());
+							cPolySimple.push_back(qPolySimpleCounterclockwise);
+						}
+
+						// Timing
+						auto durLS2 = steady_clock::now() - startLS2;
+						ls_time += duration_cast<milliseconds>(durLS2).count();
+					}
 				}
-			}
 
-			if (pPolySimple.size() == 0) { continue; }
+				if (pPolySimple.size() == 0) { continue; }
 
-			std::vector<MyPoint> rdPoly;
-			ReduceSTpoint(allPolygons, pPolySimple, rdPoly);
-			if (ReduceSTpoint(allPolygons, rdPoly, rdPoly) != 0)
-				STPolygons.push_back(rdPoly);
+				std::vector<MyPoint> rdPoly;
+				ReduceSTpoint(allPolygons, pPolySimple, rdPoly);
+				if (ReduceSTpoint(allPolygons, rdPoly, rdPoly) != 0)
+					STPolygons.push_back(rdPoly);
 
-			std::vector<std::vector<MyPoint>> rdcPoly;
-			for (size_t a = 0; a < cPolySimple.size(); a++)
-			{
-				std::vector<MyPoint> stPoly;
-				ReduceSTpoint(allPolygons, cPolySimple[a], stPoly);
-				if (ReduceSTpoint(allPolygons, stPoly, stPoly) != 0)
-					STPolygons.push_back(stPoly);
-				rdcPoly.push_back(stPoly);
-				stPoly.clear();
-			}
-
-			CD_Cdt cdt_blk = GetCDT(rdPoly, rdcPoly, true, true);
-			rdPoly.clear();
-			for (size_t a = 0; a < rdcPoly.size(); a++) { rdcPoly[a].clear(); }
-			rdcPoly.clear();
-			for (CD_Cdt::Finite_faces_iterator fit = cdt_blk.finite_faces_begin(); fit != cdt_blk.finite_faces_end(); ++fit)
-			{
-				if (fit->is_in_domain())
+				std::vector<std::vector<MyPoint>> rdcPoly;
+				for (size_t a = 0; a < cPolySimple.size(); a++)
 				{
-					MyTriangle tr = MyTriangle(MyPoint(fit->vertex(0)->point().x(), fit->vertex(0)->point().y()),
-						MyPoint(fit->vertex(1)->point().x(), fit->vertex(1)->point().y()),
-						MyPoint(fit->vertex(2)->point().x(), fit->vertex(2)->point().y()),
-						TRIANGLE_NOT_DEFINED);
-					scTriangles.push_back(tr);
+					std::vector<MyPoint> stPoly;
+					ReduceSTpoint(allPolygons, cPolySimple[a], stPoly);
+					if (ReduceSTpoint(allPolygons, stPoly, stPoly) != 0)
+						STPolygons.push_back(stPoly);
+					rdcPoly.push_back(stPoly);
+					stPoly.clear();
+				}
+
+				CD_Cdt cdt_blk = GetCDT(rdPoly, rdcPoly, true, true);
+				rdPoly.clear();
+				for (size_t a = 0; a < rdcPoly.size(); a++) { rdcPoly[a].clear(); }
+				rdcPoly.clear();
+				for (CD_Cdt::Finite_faces_iterator fit = cdt_blk.finite_faces_begin(); fit != cdt_blk.finite_faces_end(); ++fit)
+				{
+					if (fit->is_in_domain())
+					{
+						MyTriangle tr = MyTriangle(MyPoint(fit->vertex(0)->point().x(), fit->vertex(0)->point().y()),
+							MyPoint(fit->vertex(1)->point().x(), fit->vertex(1)->point().y()),
+							MyPoint(fit->vertex(2)->point().x(), fit->vertex(2)->point().y()),
+							TRIANGLE_NOT_DEFINED);
+						scTriangles.push_back(tr);
+					}
 				}
 			}
+			potrace_state_free(trace_stateST);
 		}
 	}
-	//cv::imwrite("TraceImage.png", traceImg);
-
-	//cv::imwrite("TraceImageS.png", traceImgS);
 	// Timing
-	if (isLog)
-		std::cout << "SMoothing time: " << total_smoothing_time << " milliseconds\n";
+	std::cout << "SMoothing time: " << total_smoothing_time << " milliseconds\n";
 
 	// Timing
 	auto start = steady_clock::now();
 
+	cv::Mat stImg = cv::Mat(img.size(), CV_8UC3, cv::Scalar(255, 255, 255));
+	for (auto i : scTriangles) {
+		cv::fillPoly(stImg, std::vector<cv::Point>{cv::Point(i.p1.x, i.p1.y), cv::Point(i.p1.x, i.p1.y), cv::Point(i.p1.x, i.p1.y)}, cv::Scalar(0, 0, 0));
+	}
+	cv::imwrite("stVec.png", stImg);
+
 	CD_Cdt cd_cdt1 = GetSTCDTWithRectangleBorder(allPolygons, STPolygons);	// conforming delaunay
 	std::vector<CD_Cdt::Face_handle> fsh;
-	if (this->_has_tone)
+	if (stMasks.size() > 0)
 	{
-		if (isLog)
-			std::cout << "Calculate screentone borders...\n";
+		std::cout << "Calculate screentone borders...\n";
 
 		// Rollback !
 		for (size_t a = 0; a < fsh.size(); a++)
@@ -414,7 +327,7 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 
 		for (CD_Cdt::Finite_faces_iterator fit = cd_cdt1.finite_faces_begin(); fit != cd_cdt1.finite_faces_end(); ++fit)
 		{
-			if (fit->is_in_domain())
+			//if (fit->is_in_domain())
 			{
 				TriangleType triType = TRIANGLE_NOT_DEFINED;
 				if (!blackTriangles.empty() && bTest->IsInside(fit)) { triType = TRIANGLE_BLACK; }
@@ -477,9 +390,9 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 		std::cout << "triangulation time: " << duration_cast<milliseconds>(dur).count() << " milliseconds\n";
 	}
 
-	std::vector<std::string> fullpath = UtilityFunctions::split(_strFilename, '//');
-	std::vector<std::string> nameArray = UtilityFunctions::split(fullpath[fullpath.size() - 1], '.');
-	std::string meshFilename = SystemParams::str_Resources_Mesh + nameArray[0] + ".myobj";
+	// std::vector<std::string> fullpath = UtilityFunctions::split(_strFilename, '//');
+	// std::vector<std::string> nameArray = UtilityFunctions::split(fullpath[fullpath.size() - 1], '.');
+	// std::string meshFilename = SystemParams::str_Resources_Mesh + nameArray[0] + ".myobj";
 
 	std::vector<MyQuad> resizedLsQuads = this->GetLSQuads();
 
@@ -508,8 +421,7 @@ void CVSystem::Triangulator1::LSCalculate2(cv::Mat img, bool isLog, float offset
 	//OBJWriter::WriteToOBJ("file.obj", cd_cdt1);	
 	//MakeIndexedTriangles(cd_cdt1);
 
-	if (isLog)
-		std::cout << "Done\n";
+	std::cout << "Done\n";
 }
 
 std::vector<CVSystem::MyQuad> CVSystem::Triangulator1::GetBezierQuadLS(std::vector<CVSystem::MyPoint> poly, std::vector<bool> rdpFlags, bool isInside)
@@ -893,28 +805,7 @@ std::vector<CVSystem::MyPoint> CVSystem::Triangulator1::GetPolygonLS(potrace_pat
 
 		if (a == curve.n - 1) { poly.push_back(p3); }
 	}
-	if (isDraw)
-	{
-		for (int i = 0; i < poly.size(); i++)
-		{
-			if (path->sign == '+')
-				cv::circle(traceImg, cv::Point2d(poly[i].x, poly[i].y), 1, cv::Scalar(255, 0, 255), -1);
-			else
-				cv::circle(traceImg, cv::Point2d(poly[i].x, poly[i].y), 1, cv::Scalar(0, 255, 0), -1);
-		}
-	}
-	///***
-	if (this->_has_tone) { _cssSmoothing->SmoothCurve2(poly, this->_distance_img_scaled); } // 
-	if (isDraw)
-	{
-		for (int i = 0; i < poly.size(); i++)
-		{
-			if (path->sign == '+')
-				cv::circle(traceImgS, cv::Point2d(poly[i].x, poly[i].y), 1, cv::Scalar(255, 0, 255), -1);
-			else
-				cv::circle(traceImgS, cv::Point2d(poly[i].x, poly[i].y), 1, cv::Scalar(0, 255, 0), -1);
-		}
-	}
+	// if (this->_has_tone) { _cssSmoothing->SmoothCurve2(poly, this->_distance_img_scaled); }
 	CleanUpPoly(poly);
 
 	// !!! bug here...
@@ -1289,6 +1180,8 @@ int CVSystem::Triangulator1::ReduceSTpoint(std::vector<std::vector<MyPoint>> pol
 				}
 				if (!findCC)
 					PolyIdxCount.push_back(PairData(-1, 1));
+				lastX = tp.x;
+				lastY = tp.y;
 			}
 		}
 		else
@@ -1306,11 +1199,15 @@ int CVSystem::Triangulator1::ReduceSTpoint(std::vector<std::vector<MyPoint>> pol
 				}
 				if (!findCC)
 					PolyIdxCount.push_back(PairData(PolyIdx, 1));
+				lastX = tp.x;
+				lastY = tp.y;
 			}
 
 		}
 	}
 
+	if (!PolyIdxCount.size() || PolyIdxCount.size() == 1 && PolyIdxCount[0].first == -1)
+		return 0;
 	UtilityFunctions::QuickSortMain(PolyIdxCount);
 	if (PolyIdxCount[PolyIdxCount.size() - 1].first != -1)
 		oriSource = PolyIdxCount[PolyIdxCount.size() - 1].first;
@@ -1373,20 +1270,6 @@ int CVSystem::Triangulator1::ReduceSTpoint(std::vector<std::vector<MyPoint>> pol
 
 
 	std::cout << SystemParams::t_STDis << "  " << souPoly.size() << "  " << reduceCount << std::endl;
-
-	cv::Mat cc = testImg.clone();
-	std::stringstream ss;
-
-	for (int Idx = 0; Idx < souPoly.size(); Idx++)
-	{
-		cv::circle(cc, cv::Point2d(souPoly[Idx].x, souPoly[Idx].y), 2, cv::Scalar(255, 0, 0), -1);
-	}
-	for (int Idx = 0; Idx < tNewPoly.size(); Idx++)
-	{
-		cv::circle(cc, cv::Point2d(tNewPoly[Idx].x, tNewPoly[Idx].y), 1, cv::Scalar(0, 255, 0), -1);
-	}
-	ss << "rdPoly_" << testcount << "_t" << 1 << "_" << SystemParams::t_STDis << ".png";
-	cv::imwrite(ss.str().c_str(), cc);
 
 	int ooriS = oriSource;
 	testcount++;
@@ -1588,7 +1471,6 @@ int CVSystem::Triangulator1::ReduceSTpoint(std::vector<std::vector<MyPoint>> pol
 								if (!isExist)
 								{
 									isW = true;
-									cv::circle(cc, cv::Point2d(tp.x, tp.y), 1, cv::Scalar(255, 255, 0), -1);
 
 									tNewPoly.insert(tNewPoly.begin() + p, tp);
 									tNewPolySource.insert(tNewPolySource.begin() + p, -1);
@@ -1636,31 +1518,6 @@ int CVSystem::Triangulator1::ReduceSTpoint(std::vector<std::vector<MyPoint>> pol
 	desPoly.clear();
 	if (hasST)
 	{
-
-
-
-		cc = testImg.clone();
-		for (int Idx = 0; Idx < souPoly.size(); Idx++)
-		{
-			cv::circle(cc, cv::Point2d(souPoly[Idx].x, souPoly[Idx].y), 2, cv::Scalar(255, 0, 0), -1);
-		}
-		for (int Idx = 0; Idx < tNewPoly.size(); Idx++)
-		{
-			cv::circle(cc, cv::Point2d(tNewPoly[Idx].x, tNewPoly[Idx].y), 1, cv::Scalar(0, 255, 0), -1);
-			cv::Mat ccc = testImg.clone();
-			cv::circle(ccc, cv::Point2d(tNewPoly[Idx].x, tNewPoly[Idx].y), 2, cv::Scalar(0, 255, 0), -1);
-			ss.str("");
-			ss << "rdPoly_" << testcount << "_t" << 2 << "_" << SystemParams::t_STDis << "_" << Idx << "_" << tNewPolySource[Idx] << "_" << tNewPolyIdx[Idx] << ".png";
-
-			//cv::imwrite(ss.str().c_str(), ccc);
-
-		}
-
-
-		ss.str("");
-		ss << "rdPoly_" << testcount++ << "_t" << 2 << "_" << SystemParams::t_STDis << ".png";
-		cv::imwrite(ss.str().c_str(), cc);
-
 
 		desPoly = tNewPoly;
 		/*

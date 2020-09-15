@@ -153,11 +153,11 @@ namespace CVSystem
 		~Triangulator1();
 
 		std::vector<double*> debugLines;
-		void TraceImage(std::string strFilename, cv::Mat img, int* mask, int* dilatedMask, bool isLog);	// Trace
+		static potrace_state_t* TraceImage(cv::Mat img);	// Trace
 		
 		// void OCalculate();		// Original (Deprecated)
 		// void LSCalculate1();	// Least Square (Deprecated)
-		void LSCalculate2(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
+		void LSCalculate2(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0, std::vector<cv::Mat> stMark = std::vector<cv::Mat>());	// Complete Triangulation
 		// void LSCalculate3(cv::Mat img, bool isLog, float offsetX = 0, float offsetY = 0);	// Complete Triangulation
 		// void LSCalculateTU(cv::Mat img, bool isLog);	// Complete Triangulation
 		
@@ -221,7 +221,7 @@ namespace CVSystem
 
 	//private:
 		// stuff from Potrace
-		potrace_bitmap_t* GetBM(cv::Mat img);
+		static potrace_bitmap_t* GetBM(cv::Mat img);
 		void CurveToBezier(MyPoint p0, MyPoint p1, MyPoint p2, MyPoint p3, MyPoint& cp0, MyPoint& cp1);
 
 		// create CDT		
@@ -316,8 +316,6 @@ namespace CVSystem
 
 		cv::Mat _TriImage;					//Image in MyOBJ
 
-		bool _has_tone;	// does mesh have screentone?
-
 		int _w_scaled;	// scaled image width
 		int _h_scaled;	// scaled image height
 
@@ -325,8 +323,8 @@ namespace CVSystem
 		CSSSmoothing*	 _cssSmoothing;
 
 		//// Potrace
-		potrace_state_t* _trace_state;
-		potrace_state_t* _trace_stateST;
+		/*potrace_state_t* _trace_state;
+		potrace_state_t* _trace_stateST;*/
 
 		cv::Mat STimg;
 

@@ -200,7 +200,7 @@ void PreView::openMyObjFile(std::string filePath)
 
 void PreView::openBitmapFile(std::string filePath)
 {
-	myObj.ReadFromBitmap(filePath);
+	myObj.ReadFromBitmap(filePath, std::vector<std::string>{ "mask1.png" });
 
 	screenToneShader.Enable();
 	screenToneShader.SetInImgSize(myObj.img_width, myObj.img_height);

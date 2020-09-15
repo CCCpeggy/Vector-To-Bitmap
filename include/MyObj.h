@@ -463,46 +463,69 @@ private:
 	}
 	public:
 
+	cv::Mat LoadMark(std::string path) {
+		cv::Mat imageROI;
+		imageROI = cv::imread(path);
+		img_width = imageROI.cols;
+		img_height = imageROI.rows;
+		imageROI = scSegm->ComputeOtsuGaussian(imageROI);
+		std::cout << "Running Segmentation\n";
+		cv::Mat img = CVSystem::ScreentoneSegmentation::Compute_Segmentation(imageROI);
+		std::string fileName = path.substr(0, path.find("."));
+		cv::imwrite(fileName + "_Segmentation.png", img);
+		return img;
+	}
+
+	bool checkImgNotEmpty(cv::Mat img) {
+		for (int h = 0; h < img.rows; h++)
+		{
+			for (int w = 0; w < img.cols; w++)
+			{
+				if (img.at<uchar>(h, w) == 0)
+				{
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	void removeST(cv::Mat& img, cv::Mat stImg) {
+		resize(stImg, stImg, cv::Size(img.cols, img.rows));
+		for (int h = 0; h < stImg.rows; h++)
+		{
+			for (int w = 0; w < stImg.cols; w++)
+			{
+				if (stImg.at<uchar>(h, w) < 127)
+				{
+					img.at<uchar>(h, w) = 255;
+				}
+			}
+		}
+	}
+
 	std::vector<double*> lines;
-	void ReadFromBitmap(std::string imgPath)
+	void ReadFromBitmap(std::string imgPath, std::vector<std::string> stMarkPaths)
 	{
 		std::cout << "Do Otsu\n";
 
-		cv::Mat imageROI;
-		imageROI = cv::imread(imgPath);
-		img_width = imageROI.cols;
-		img_height = imageROI.rows;
-		cv::imwrite("Origin.png", imageROI);
-		imageROI = scSegm->ComputeOtsuGaussian(imageROI);
-		std::cout << "Running Segmentation\n";
-		/*std::vector<std::vector<CVSystem::MyPoint>> sRects = ui.frame->GetGLWidget()->GetSelectRectangle();
-		if (sRects.size() != 0)
-		{
-			cv::Mat Bimage = ui.frame->GetGLWidget()->GetTextureUnitSource();
+		std::vector<cv::Mat> stMarks;
 
-			imageROI = (Bimage, sRects);
-		}
-		else
-		{
-			imageROI = ui.frame->GetGLWidget()->GetTextureUnitSource();
-		}*/
-		cv::imwrite("Compute_Otsu_Gaussian.png", imageROI);
-		cv::Mat oriImg = CVSystem::ScreentoneSegmentation::Compute_Segmentation(imageROI);
-		cv::imwrite("Compute_Segmentation.png", oriImg);
-		bool isEmpty = true;
-		for (int h = 0; h < oriImg.rows; h++)
-		{
-			for (int w = 0; w < oriImg.cols; w++)
-			{
-				if (oriImg.at<uchar>(h, w) == 0)
-				{
-					isEmpty = false;
-					break;
-				}
+		cv::Mat oriImg = LoadMark(imgPath);
+
+		int i = 0;
+		for (auto path : stMarkPaths) {
+			cv::Mat stMark = LoadMark(path);
+			cv::imwrite("stMark.png", stMark);
+			if (checkImgNotEmpty(stMark)) {
+				stMarks.push_back(stMark);
+				removeST(oriImg, stMark);
 			}
-			if (!isEmpty) false;
 		}
-		if (!isEmpty)
+
+		cv::imwrite("removeSt.png", oriImg);
+		
+		if (checkImgNotEmpty(oriImg))
 		{
 			int* labelMap = 0;
 			int* dilatedLabelMap = 0;
@@ -518,10 +541,10 @@ private:
 
 			if (triangulator1) delete triangulator1;
 			triangulator1 = new CVSystem::Triangulator1();
-			triangulator1->TraceImage(imgPath, oriImg.clone(), labelMap, dilatedLabelMap, true);
+			//triangulator1->TraceImage(imgPath, oriImg.clone(), labelMap, dilatedLabelMap, true);
 
 			//計算輸出三角化
-			triangulator1->LSCalculate2(oriImg, true, -offsetPixel, -offsetPixel);
+			triangulator1->LSCalculate2(oriImg, true, -offsetPixel, -offsetPixel, stMarks);
 
 			//顯示三角的畫面
 			vertexList = triangulator1->GetVertexList();
